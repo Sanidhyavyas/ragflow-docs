@@ -1,3 +1,5 @@
+
+
 """
 rag_chain.py — Phase 2: LLM Query Layer
 
@@ -5,7 +7,7 @@ Full RAG pipeline:
   User query
       → top-k ChromaDB chunks        (document_processor.query)
       → structured prompt             (context injection + system rules)
-      → Claude API call               (anthropic SDK)
+      → Groq API call                 (groq SDK — free tier)
       → cited answer                  ([Source: filename, chunk N] format)
 
 Usage
@@ -23,18 +25,18 @@ import sys
 from typing import Optional
 
 from dotenv import load_dotenv
-load_dotenv()  # loads ANTHROPIC_API_KEY (and others) from .env into os.environ
+load_dotenv()  # loads GROQ_API_KEY from .env into os.environ
 
-from anthropic import Anthropic, APIError, AuthenticationError
+from groq import Groq, APIError, AuthenticationError
 from langchain_core.documents import Document
 
 import document_processor as dp
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-CLAUDE_MODEL = "claude-sonnet-4-20250514"
-TOP_K        = 5
-MAX_TOKENS   = 1024
+GROQ_MODEL = "llama-3.3-70b-versatile"   # free tier — 30k tokens/min, 1k req/day
+TOP_K      = 5
+MAX_TOKENS = 1024
 
 # ── System prompt ──────────────────────────────────────────────────────────────
 #
@@ -42,7 +44,7 @@ MAX_TOKENS   = 1024
 #
 # 1. "ONLY using information from the CONTEXT CHUNKS"
 #    Hard constraint that prevents the model from drifting into parametric
-#    (training-time) knowledge.  Without this, Claude may confidently answer
+#    (training-time) knowledge.  Without this, LLaMA may confidently answer
 #    from its own memory even when the context is silent on the topic.
 #
 # 2. Mandatory citation format [Source: <file>, chunk <N>]
@@ -54,10 +56,9 @@ MAX_TOKENS   = 1024
 #    suppress hallucination.  If the model knows it is allowed to say it
 #    doesn't know, it will do so rather than confabulate.
 #
-# 4. System vs. user message split
+# 4. System instruction vs. user message split
 #    Rules go in the system prompt (evaluated once, high priority).
 #    Context + question go in the user message (varies per request).
-#    This is more token-efficient than embedding rules in every user turn.
 
 SYSTEM_PROMPT = """\
 You are a precise document-intelligence assistant.
@@ -124,7 +125,7 @@ def ask(
     Parameters
     ----------
     question        : Natural-language question.
-    api_key         : Anthropic API key.  Falls back to ANTHROPIC_API_KEY env var.
+    api_key         : Groq API key.  Falls back to GROQ_API_KEY env var.
     vector_store    : Live Chroma instance.  If None, loads from disk automatically.
     k               : Number of chunks to retrieve (default 5).
     collection_name : ChromaDB collection to search.
@@ -138,7 +139,7 @@ def ask(
     Raises
     ------
     EnvironmentError  : Missing or invalid API key.
-    RuntimeError      : Anthropic API / network error.
+    RuntimeError      : Groq API / network error.
     """
     # ── Step 1: Retrieve ───────────────────────────────────────────────────────
     chunks = dp.query(question, vector_store=vector_store, k=k,
@@ -161,32 +162,35 @@ def ask(
     user_message = _build_user_message(question, chunks)
 
     # ── Step 3: Resolve API key ────────────────────────────────────────────────
-    resolved_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+    resolved_key = api_key or os.environ.get("GROQ_API_KEY")
     if not resolved_key:
         raise EnvironmentError(
-            "Anthropic API key not found.\n"
-            "  Option A: set the environment variable  ANTHROPIC_API_KEY=sk-ant-...\n"
-            "  Option B: pass  api_key='sk-ant-...'  to ask()"
+            "Groq API key not found.\n"
+            "  Option A: set the environment variable  GROQ_API_KEY=gsk_...\n"
+            "  Option B: pass  api_key='gsk_...'  to ask()\n"
+            "  Get a free key at: https://console.groq.com"
         )
 
-    # ── Step 4: Call Claude ────────────────────────────────────────────────────
-    client = Anthropic(api_key=resolved_key)
+    # ── Step 4: Call Groq ────────────────────────────────────────────────────
+    client = Groq(api_key=resolved_key)
 
     try:
-        response = client.messages.create(
-            model      = CLAUDE_MODEL,
+        response = client.chat.completions.create(
+            model      = GROQ_MODEL,
             max_tokens = MAX_TOKENS,
-            system     = SYSTEM_PROMPT,
-            messages   = [{"role": "user", "content": user_message}],
+            messages   = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": user_message},
+            ],
         )
     except AuthenticationError:
         raise EnvironmentError(
-            "Anthropic API key rejected. Verify your ANTHROPIC_API_KEY value."
+            "Groq API key rejected. Verify your GROQ_API_KEY value."
         )
     except APIError as e:
-        raise RuntimeError(f"Anthropic API error: {e}")
+        raise RuntimeError(f"Groq API error: {e}")
 
-    return response.content[0].text
+    return response.choices[0].message.content
 
 
 # ── CLI interface ──────────────────────────────────────────────────────────────
@@ -201,8 +205,8 @@ def _cli() -> None:
       verbose      — toggle chunk display (default off)
     """
     print("=" * 60)
-    print("  Multi-Modal RAG — Phase 2 CLI")
-    print(f"  Model  : {CLAUDE_MODEL}")
+    print("  Multi-Modal RAG — Phase 2 CLI  (powered by Groq)")
+    print(f"  Model  : {GROQ_MODEL}")
     print(f"  Top-K  : {TOP_K} chunks per query")
     print("  Cmds   : 'verbose' to toggle chunk view | 'quit' to exit")
     print("=" * 60)

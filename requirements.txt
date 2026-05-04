@@ -14,6 +14,11 @@ sentence-transformers>=3.0.0         # all-MiniLM-L6-v2 and other SBERT models
 # ── Document Loaders ──────────────────────────────────────────────────────────
 pypdf>=4.3.1                         # PDF parsing backend for PyPDFLoader
 
+# ── OCR / Phase 3 ─────────────────────────────────────────────────────────────
+pytesseract>=0.3.10                  # Python wrapper for Tesseract OCR engine
+Pillow>=10.0.0                       # PIL — image loading for OCR
+pdf2image>=1.17.0                    # Converts PDF pages to PIL images (needs Poppler)
+
 # ── LLM (Phase 2) ─────────────────────────────────────────────────────────────
-anthropic>=0.40.0                    # Anthropic Python SDK (Claude API)
-python-dotenv>=1.0.0                 # Load ANTHROPIC_API_KEY from .env
+groq>=0.9.0                          # Groq Python SDK — free tier LLaMA 3.3 70B
+python-dotenv>=1.0.0                 # Load GROQ_API_KEY from .env
