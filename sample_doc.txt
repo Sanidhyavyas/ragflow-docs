@@ -1,0 +1,42 @@
+Retrieval-Augmented Generation (RAG) is an AI framework that improves large
+language model (LLM) outputs by grounding them in an external knowledge base.
+
+How RAG works
+=============
+1. The user submits a natural-language query.
+2. The retriever embeds the query and performs semantic search over a vector
+   database to find the most relevant document chunks.
+3. The retrieved chunks are injected into the LLM prompt as additional context.
+4. The LLM generates a factual, grounded answer based on that context.
+
+RAG reduces hallucinations because the model can cite retrieved passages
+instead of relying solely on its parametric (training-time) memory.
+
+ChromaDB
+========
+ChromaDB is an open-source embedding database that stores document vectors
+locally on disk.  It uses an HNSW (Hierarchical Navigable Small World) index
+for fast approximate nearest-neighbour (ANN) search.  No internet connection
+or API key is required — everything runs in-process.
+
+Sentence-Transformers
+=====================
+Sentence-transformers provide lightweight, CPU-friendly embedding models.
+The all-MiniLM-L6-v2 model maps text to a 384-dimensional vector space and
+runs entirely offline.  It is a good default for English-language semantic
+search tasks and can process thousands of sentences per second on a CPU.
+
+LangChain
+=========
+LangChain is a framework for building LLM-powered applications.  It provides
+standardised interfaces for document loaders, text splitters, embedding models,
+vector stores, and LLM chains — making it easy to swap out individual
+components without rewriting the rest of the pipeline.
+
+Text Splitting Strategy
+=======================
+RecursiveCharacterTextSplitter breaks documents into overlapping chunks.
+It tries to split on paragraph breaks first (\n\n), then sentence breaks (\n),
+then word boundaries, before resorting to hard character cuts.  An overlap of
+200 characters ensures that sentences spanning a chunk boundary are present in
+both neighbouring chunks, preventing context loss during retrieval.

@@ -1,0 +1,19 @@
+# ── Core LangChain ────────────────────────────────────────────────────────────
+langchain>=0.2.16
+langchain-community>=0.2.16          # PyPDFLoader, TextLoader, etc.
+langchain-chroma>=0.1.4              # ChromaDB integration for LangChain
+langchain-huggingface>=0.0.3         # HuggingFaceEmbeddings wrapper
+langchain-text-splitters>=0.2.4      # RecursiveCharacterTextSplitter
+
+# ── Vector Store ──────────────────────────────────────────────────────────────
+chromadb>=0.5.3                      # Local persistent vector database
+
+# ── Embeddings (fully local, no API key required) ─────────────────────────────
+sentence-transformers>=3.0.0         # all-MiniLM-L6-v2 and other SBERT models
+
+# ── Document Loaders ──────────────────────────────────────────────────────────
+pypdf>=4.3.1                         # PDF parsing backend for PyPDFLoader
+
+# ── LLM (Phase 2) ─────────────────────────────────────────────────────────────
+anthropic>=0.40.0                    # Anthropic Python SDK (Claude API)
+python-dotenv>=1.0.0                 # Load ANTHROPIC_API_KEY from .env
